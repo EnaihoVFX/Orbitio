@@ -1,14 +1,30 @@
 version: '3.8'
 
 services:
-  hyperliquid-ledger:
-    build: .
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orbitio-backend
     ports:
       - "8000:8000"
-    environment:
-      - TARGET_BUILDER=${TARGET_BUILDER:-} # Optional: Set your builder address here or in .env
-      - STORAGE_TYPE=${STORAGE_TYPE:-sqlite} # Options: memory, sqlite
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/hyperliquid.db}
     volumes:
       - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///data/hyperliquid.db
+      - ALLOWED_ORIGINS=http://localhost:4173,http://localhost:5173
+      - TARGET_BUILDER=0x... # Optional: Set your default builder address here
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: orbitio-frontend
+    ports:
+      - "4173:4173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
     restart: unless-stopped

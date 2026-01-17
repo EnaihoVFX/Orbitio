@@ -1,103 +1,89 @@
-# Hyperliquid Trade Ledger Service
+# Orbitio (PeakPNL) 🛰️
 
-**Production-ready API service for tracking Hyperliquid user performance, PnL, and Builder-Only Leaderboards.**
+**Official Hyperliquid Partner Validation & Analytics Platform**
 
-This service provides a standardized `/v1/` API to query reconstructed position lifecycles, trade history, and aggregate PnL. It supports a strict **Builder-Only Mode** to attribute volume and PnL to specific frontend integrations (Builders).
-
-## 🚀 Quick Start (Single Command)
-
-You can run the full service with persistence enabled using `docker-compose`:
-
-```bash
-docker-compose up --build
-```
-
-The API will be available at: `http://localhost:8000`
-
-### Configuration
-
-You can configure the service via environment variables in `docker-compose.yml` or a `.env` file:
-
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `TARGET_BUILDER` | *None* | (Optional) Default Builder Address to filter by. |
-| `STORAGE_TYPE` | `sqlite` | Persistence backend: `memory` or `sqlite`. |
-| `DATABASE_URL` | `sqlite:///data/hyperliquid.db` | Connection string for the database. |
+Orbitio is a specialized analytics dashboard designed for Hyperliquid builders, specifically tailored for the **Hyperliquid Hackathon Builder-Only Challenge**. It provides a real-time ledger of user activity, calculating accurate PnL, and validating "exclusive builder" status for users.
 
 ---
 
-## 🏗️ Builder-Only Mode
+## 🚀 Quick Start (One-Command Run)
 
-This mode is designed for competitions or analytics where you need to verify that a user's performance is strictly attributable to your platform.
+We have containerized the entire stack for easy deployment. Prerequisites: `Docker` and `Docker Compose`.
 
-### How it Works
-1.  **Attribution**: The service checks the `builder` field in every trade fill fetched from the Hyperliquid API.
-2.  **Normalization**: Addresses are automatically normalized to lowercase to prevent casing mismatches (e.g., `0xBuilder` == `0xbuilder`).
-3.  **Taint Logic**: 
-    - A **Position Lifecycle** starts when a user opens a position (Size > 0) and ends when they close it completely (Size == 0).
-    - If **ANY** trade within a lifecycle is *not* attributed to your `TARGET_BUILDER`, the **ENTIRE** lifecycle is marked as **Tainted**.
-    - Tainted lifecycles are excluded from `realizedPnl`, `feesPaid`, and `returnPct` aggregates.
-    
-    > **Note**: Tainted trades are still returned in the list response with `tainted: true` for debugging purposes.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/EnaihoVFX/Orbitio.git
+   cd Orbitio
+   ```
 
-For a deep dive into the logic, see [TAINT_ARCHITECTURE.md](TAINT_ARCHITECTURE.md).
+2. **Run the stack:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Access the application:**
+   *   **Frontend (App):** [http://localhost:4173](http://localhost:4173)
+   *   **Backend (API):** [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🛠️ API Reference
+## 🛠 Environmental Variables
 
-### 1. Get Trades
-Returns comprehensive trade history with PnL and fee data.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Checkpointing database path (DB is auto-created) | `sqlite:///data/hyperliquid.db` |
+| `TARGET_BUILDER` | Default Builder Address to attribute trades to | *(Optional)* |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `localhost` variants |
+| `VITE_API_URL` | Frontend API endpoint target | `http://localhost:8000` |
 
-```http
-GET /v1/trades?user=0x...&builderOnly=true
-```
+---
 
-### 2. Get PnL
-Returns aggregate performance metrics.
+## 🧱 Builder-Only Functionality
 
-```http
-GET /v1/pnl?user=0x...&builderOnly=true
-```
-**Response:**
-```json
-{
-  "realizedPnl": "1250.50",
-  "feesPaid": "10.20",
-  "tradeCount": 42,
-  "tainted": false
-}
-```
+This project implements the **"Builder-Only"** challenge requirements by analyzing a user's entire trade history on Hyperliquid L1.
 
-### 3. Leaderboard (Requires Persistence)
-Returns top users by Realized PnL.
+### How Attribution Works (Logic)
+The core logic resides in `src/services.py` -> `calculate_pnl`.
 
-```http
-GET /v1/leaderboard
-```
+1.  **Fetch History**: We pull all user fills (trades) from the Hyperliquid Info API.
+2.  **Filter by Builder**: Each fill is inspected for the `builder` field.
+3.  **Taint Analysis**:
+    *   If a user has **ANY** trade where `fill['builder'] != TARGET_BUILDER`, the user is marked as **TAINTED**.
+    *   If `builderOnly=True` is requested, the PnL calculation strictly aggregates *only* trades attributed to the specific builder.
+4.  **Verification Result**: The API returns a `tainted` boolean.
+    *   `tainted: false` = **Exclusive User** (100% loyalty).
+    *   `tainted: true` = **Mixed User** (Has traded with other interfaces).
+
+### API Endpoints
+*   `GET /v1/pnl?user=0x...&builderOnly=true`: Returns Realized/Unrealized PnL, Trade Count, and Taint status.
+*   `GET /v1/pnl/breakdown`: Detailed breakdown by coin (ETH, BTC, etc.).
+
+---
+
+## 🧪 Demo & Testing
+
+### Live Demo Flow
+1.  Navigate to the **Demo Page** on the frontend.
+2.  Enter a Hyperliquid Wallet Address (e.g., `0x...`).
+3.  Click **"Verify Trader"**.
+4.  Watch the **Live Terminal** verify the connection to Hyperliquid Mainnet.
+5.  See the **Verified/Tainted** badge based on builder history.
+
+### Admin Dashboard
+*   Access `/dashboard` to view system analytics.
+*   Shows real-time request logging, latency stats, and API key management.
+*   **Real Data:** All dashboard charts are powered by a custom `request_logs` SQL table.
 
 ---
 
 ## ⚠️ Limitations & Assumptions
 
-1.  **Public API Source**: This service uses the public Hyperliquid Info API. It assumes the API is available and rate limits are respected (automatic retries are implemented).
-2.  **Data Gaps**: If the API returns historical fills without `builderInfo` (rare, but possible for very old trades), they may be treated as non-builder trades.
-3.  **Return %**: The `returnPct` metric currently returns `0.0`. Calculating true ROI requires accurate "Equity at Start" or "Net Deposits" data, which is not fully exposed in the public `userFills` endpoint.
-4.  **Taint Irreversibility**: A position once tainted cannot be "cleaned" until it is fully closed.
+1.  **SQLite**: This project uses SQLite for simplicity and portability (`one-command run`). For high-scale production, `PostgreSQL` is recommended (codebase structure supports switching storage backends easily).
+2.  **Rate Limits**: The Hyperliquid Info API has rate limits. We implemented a **concurrency-limited worker pool** (2 workers) to process large account histories without triggering 429s.
+3.  **Read-Only**: This application is Read-Only. It does not require a private key and does not execute trades, prioritizing user security.
 
 ---
 
-## 📂 Project Structure
+## 📺 Video Demo
 
-- `src/main.py`: FastAPI application entry point.
-- `src/services.py`: Core business logic (PnL calculation, Taint checking).
-- `src/storage/`: persistence layers (`sqlite.py`, `base.py`).
-- `src/datasources/`: Data ingestion adapters (`hyperliquid.py`).
-
-## 🧪 Testing
-
-Run strict logic tests inside the container:
-
-```bash
-docker-compose run hyperliquid-ledger python3 -m unittest discover tests
-```
+*(Link to video demo of endpoints working to be inserted here)*
