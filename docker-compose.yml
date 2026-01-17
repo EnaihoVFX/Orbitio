@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  hyperliquid-ledger:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - TARGET_BUILDER=${TARGET_BUILDER:-} # Optional: Set your builder address here or in .env
+      - STORAGE_TYPE=${STORAGE_TYPE:-sqlite} # Options: memory, sqlite
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/hyperliquid.db}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
