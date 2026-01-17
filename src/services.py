@@ -80,7 +80,7 @@ class LedgerService:
                 raise e
             
         df = pd.DataFrame(fills)
-        if df.empty:
+        if df.empty or 'coin' not in df.columns:
              return {
                  "trades": [], 
                  "positions": [], 
@@ -139,7 +139,9 @@ class LedgerService:
         # Pre-process funding by coin for efficiency
         funding_by_coin = {}
         for f in funding_history:
-            c = f['coin']
+            # Hyperliquid SDK return format check
+            c = f.get('coin') or f.get('token')
+            if not c: continue
             if coin_filter and c != coin_filter: continue
             if c not in funding_by_coin: funding_by_coin[c] = []
             funding_by_coin[c].append(f)

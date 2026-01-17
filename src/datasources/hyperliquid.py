@@ -85,15 +85,8 @@ class HyperliquidDataSource(DataSource):
              return self._fetch_range(address, start_ms, now_ms + ONE_WEEK_MS)
         
         # Parallel Segmentation
-        # For "All History" (since=0), let's assume Hyperliquid starts around 2023? 
-        # But safest is just to start from a reasonable "start of time" or 0 if API handles it.
-        # But efficiently, let's divide the missing range.
-        
-        # If since=0, fetching from 2023-01-01 (approx genesis) avoids huge empty scan?
-        # Actually API returns empty fast if no data.
-        
         total_duration = now_ms - start_ms
-        num_workers = 5 # 5 parallel threads
+        num_workers = 2 # Reduced from 5 to avoid 429 Rate Limits
         segment_size = total_duration // num_workers
         
         futures = []

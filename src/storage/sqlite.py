@@ -33,6 +33,84 @@ class SqliteStorage(StorageBackend):
         ''')
         c.execute('CREATE INDEX IF NOT EXISTS idx_user_time ON fills (user, time)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_user_coin ON fills (user, coin)')
+
+        # New SaaS Tables
+        # api_keys is managed by SQLAlchemy in database.py
+        # c.execute('''
+        #     CREATE TABLE IF NOT EXISTS api_keys (
+        #         key TEXT PRIMARY KEY,
+        #         name TEXT,
+        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         is_active BOOLEAN DEFAULT 1
+        #     )
+        # ''')
+
+        # request_logs is now managed by SQLAlchemy in database.py
+        # c.execute('''
+        #     CREATE TABLE IF NOT EXISTS request_logs (
+        #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         endpoint TEXT,
+        #         status_code INTEGER,
+        #         latency_ms REAL,
+        #         api_key TEXT,
+        #         user_addr TEXT
+        #     )
+        # ''')
+        # c.execute('CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON request_logs (timestamp)')
+
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+    # --- SaaS Methods ---
+
+    def create_api_key(self, key: str, name: str):
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        c.execute('INSERT INTO api_keys (key, name) VALUES (?, ?)', (key, name))
+        conn.commit()
+        conn.close()
+
+    def get_api_key(self, key: str) -> Optional[dict]:
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        c.execute('SELECT key, name, is_active FROM api_keys WHERE key = ?', (key,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return {"key": row[0], "name": row[1], "is_active": bool(row[2])}
+        return None
+    
+    def log_request(self, endpoint: str, status_code: int, latency_ms: float, api_key: str = None, user_addr: str = None):
+        # Fire and forget logging (blocking for sqlite but fast enough)
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO request_logs (endpoint, status_code, latency_ms, api_key, user_addr)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (endpoint, status_code, latency_ms, api_key, user_addr))
+        conn.commit()
+        conn.close()
+
+    def get_setting(self, key: str) -> Optional[str]:
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        c.execute('SELECT value FROM app_settings WHERE key = ?', (key,))
+        row = c.fetchone()
+        conn.close()
+        return row[0] if row else None
+
+    def set_setting(self, key: str, value: str):
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        c.execute('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', (key, value))
         conn.commit()
         conn.close()
 
@@ -131,3 +209,40 @@ class SqliteStorage(StorageBackend):
                 "tradeCount": r[2]
             })
         return results
+    
+    def get_request_timeseries(self, duration: str = "24h") -> List[Any]:
+        conn = sqlite3.connect(self.file_path)
+        c = conn.cursor()
+        
+        # Format string for SQLite strftime
+        # %Y-%m-%d %H:%M:%S
+        
+        group_format = "%Y-%m-%d %H:00:00" # Default hourly
+        delta = "-1 day"
+        
+        if duration == "1h":
+            group_format = "%Y-%m-%d %H:%M:00"
+            delta = "-1 hour"
+        elif duration == "24h":
+            group_format = "%Y-%m-%d %H:00:00"
+            delta = "-1 day"
+        elif duration == "7d":
+            group_format = "%Y-%m-%d"
+            delta = "-7 days"
+        elif duration == "30d":
+            group_format = "%Y-%m-%d"
+            delta = "-30 days"
+            
+        query = f'''
+            SELECT strftime('{group_format}', created_at) as bucket, COUNT(*) 
+            FROM request_logs 
+            WHERE created_at >= datetime('now', '{delta}')
+            GROUP BY bucket 
+            ORDER BY bucket ASC
+        '''
+        
+        c.execute(query)
+        rows = c.fetchall()
+        conn.close()
+        
+        return [{"name": r[0], "val": r[1]} for r in rows]

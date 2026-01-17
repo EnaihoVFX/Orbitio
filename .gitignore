@@ -1,8 +1,30 @@
+# Python
 __pycache__/
-*.pyc
-.env
-.DS_Store
-hyperliquid.db*
-.venv/
+*.py[cod]
+*$py.class
 venv/
-tests/.pytest_cache/
+.venv/
+env/
+.env
+.env.*
+! .env.example
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.DS_Store
+frontend/coverage/
+
+# Database
+*.db
+*.sqlite3
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
