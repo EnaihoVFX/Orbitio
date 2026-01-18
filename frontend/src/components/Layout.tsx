@@ -16,7 +16,7 @@ export default function Layout({
     showBackground = true
 }: LayoutProps) {
     return (
-        <div className="flex flex-col min-h-screen relative overflow-hidden bg-[#0a0a0f] bg-background text-foreground">
+        <div className="flex flex-col min-h-screen relative overflow-hidden bg-[#0a0a0f] text-foreground">
 
             {/* Standard Animated Background */}
             {showBackground && (

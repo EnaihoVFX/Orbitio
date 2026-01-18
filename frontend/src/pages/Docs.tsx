@@ -12,7 +12,7 @@ export default function Docs() {
     const [activeSection, setActiveSection] = useState<'quickstart' | 'reference' | 'playground'>('quickstart');
 
     return (
-        <Layout>
+        <Layout className="bg-[#050505] min-h-screen">
             {/* Hero */}
             <section className="text-center max-w-4xl mx-auto mb-16">
                 <Badge variant="info" className="mb-6 mx-auto">

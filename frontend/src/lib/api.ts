@@ -164,6 +164,35 @@ export const getStats = async (duration: string = "24h") => {
     return res.data;
 };
 
+export const getPnlHistory = async (user: string, builderOnly = true) => {
+    // Determine base URL dynamically or fallback to localhost
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+    // We assume the stored key is valid or user provides one. 
+    // Ideally, for the demo page, the user provides the key in the input. 
+    // But this API helper often uses the 'stored' key.
+    // For the DEMO context, we might pass the key as an argument or rely on the caller to set headers.
+    // Let's rely on api.get() interceptors if we are logged in, OR we might need a custom call if we are just "demoing" without login.
+    // Since Demo.tsx uses direct axios, we will add these helpers primarily for Authenticated/Dashboard usage, 
+    // OR we make them accept an optional apiKey param.
+
+    // Actually, following existing pattern:
+    const response = await api.get('/v1/pnl/history', {
+        params: { user, builderOnly }
+    });
+    return response.data;
+};
+
+export const getLeaderboard = async (metric = 'pnl') => {
+    // Leaderboard is public-ish but behind auth usually? 
+    // The endpoint definition didn't enforce VerifyAPIKey on leaderboard... wait.
+    // main.py: @app.get("/v1/leaderboard") -- no dependency! It is public.
+    const response = await api.get('/v1/leaderboard', {
+        params: { metric }
+    });
+    return response.data;
+};
+
 export async function getRecentActivity(limit: number = 10) {
     const response = await api.get('/admin/activity', {
         params: { limit }

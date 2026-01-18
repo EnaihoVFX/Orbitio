@@ -28,3 +28,10 @@ data/
 
 # Logs
 *.log
+
+# Temp Database files
+*-shm
+*-wal
+
+# Local Debug Scripts
+debug_*.py

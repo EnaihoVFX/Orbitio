@@ -38,16 +38,13 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Get allowed origins from environment
-allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174').split(',')
-
-# CORS Middleware with specific origins
+# CORS Middleware - Allow ALL origins (unrestricted)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
+    allow_origin_regex='.*', # Allows any domain/origin
+    allow_credentials=True,  # Required for Admin cookies, but now works with any origin via regex
+    allow_methods=["*"],     # Allow all methods (GET, POST, OPTIONS, etc)
+    allow_headers=["*"],     # Allow all headers
     max_age=3600,
 )
 

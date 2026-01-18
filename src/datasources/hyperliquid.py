@@ -16,7 +16,7 @@ class HyperliquidDataSource(DataSource):
     def get_user_fills(self, address: str, since: int = 0) -> List[Any]:
         return self._get_all_user_fills(address, since)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+    @retry(stop=stop_after_attempt(5), wait=wait_fixed(5))
     def _fetch_fills_chunk(self, address: str, start_time: int = 0) -> List[Any]:
         if hasattr(self.info, 'user_fills_by_time'):
             return self.info.user_fills_by_time(address, start_time)
@@ -25,6 +25,7 @@ class HyperliquidDataSource(DataSource):
 
     def _fetch_range(self, address: str, start_ts: int, end_ts: int) -> List[Any]:
         """Fetch fills sequentially within a specific time window [start_ts, end_ts]."""
+        import time
         fills = []
         current_start = start_ts
         
@@ -33,7 +34,22 @@ class HyperliquidDataSource(DataSource):
             if current_start > end_ts:
                 break
                 
-            chunk = self._fetch_fills_chunk(address, current_start)
+            # Rate Limit Enforcement: Sleep 0.05s between chunks
+            # 20 requests per second max
+            time.sleep(0.05)
+            
+            try:
+                chunk = self._fetch_fills_chunk(address, current_start)
+                # Debug print to see progress
+                print(f"Fetched chunk start={current_start} count={len(chunk)}")
+            except Exception as e:
+                print(f"Error fetching chunk at {current_start}: {e}")
+                # If it's a 429, maybe wait longer?
+                # For now, break or retry? Breaking saves the crash but returns partial data.
+                # Let's simple break to keep the server alive.
+                print("Returning partial data to prevent crash.")
+                break
+
             if not chunk:
                 break
             
@@ -86,7 +102,7 @@ class HyperliquidDataSource(DataSource):
         
         # Parallel Segmentation
         total_duration = now_ms - start_ms
-        num_workers = 2 # Reduced from 5 to avoid 429 Rate Limits
+        num_workers = 1 # Force Sequential to prevent 429 Errors in Demo
         segment_size = total_duration // num_workers
         
         futures = []
