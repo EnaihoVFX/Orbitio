@@ -5,6 +5,16 @@
 Orbitio is a specialized analytics dashboard designed for Hyperliquid builders, specifically tailored for the **Hyperliquid Hackathon Builder-Only Challenge**. It provides a real-time ledger of user activity, calculating accurate PnL, and validating "exclusive builder" status for users.
 
 ---
+##Screenshots
+<img width="1458" height="956" alt="Screenshot 2026-01-18 at 03 30 55" src="https://github.com/user-attachments/assets/44401aae-d479-4181-9072-d71e2b4c8e43" />
+<img width="1459" height="956" alt="Screenshot 2026-01-18 at 03 30 47" src="https://github.com/user-attachments/assets/bf29d879-6f6e-40b5-b677-457261d18805" />
+<img width="1435" height="956" alt="Screenshot 2026-01-18 at 03 29 10" src="https://github.com/user-attachments/assets/9a87c1dd-6e68-4cf2-949a-831dd162985a" />
+<img width="1455" height="956" alt="Screenshot 2026-01-18 at 03 29 03" src="https://github.com/user-attachments/assets/a93697d2-d9ed-4492-aa9c-160c61905776" />
+<img width="1461" height="956" alt="Screenshot 2026-01-18 at 03 28 50" src="https://github.com/user-attachments/assets/95b6f61a-03bc-4e30-bec2-aea3b6c269e3" />
+<img width="1466" height="956" alt="Screenshot 2026-01-18 at 03 28 42" src="https://github.com/user-attachments/assets/52591338-4a6f-41b0-af7a-796fa3631d7a" />
+<img width="1461" height="956" alt="Screenshot 2026-01-18 at 03 28 31" src="https://github.com/user-attachments/assets/ac7eadac-87db-495a-87c7-49d657f8507e" />
+<img width="1462" height="956" alt="Screenshot 2026-01-18 at 03 27 40" src="https://github.com/user-attachments/assets/8194b44f-9d59-4d4a-8f3e-d53759443636" />
+<img width="1459" height="956" alt="Screenshot 2026-01-18 at 03 27 26" src="https://github.com/user-attachments/assets/afa4607e-cbda-46fc-a1f7-a51ebc42d838" />
 
 ## 🚀 Quick Start (One-Command Run)
 
